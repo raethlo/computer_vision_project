@@ -76,3 +76,10 @@ void detectFaces(CascadeClassifier face_cascade, CascadeClassifier smile_cascade
     }
 
 }
+
+void trainEmotionClassifier()
+{
+
+
+}
+

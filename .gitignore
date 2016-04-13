@@ -37,3 +37,9 @@ install_manifest.txt
 
 # ignore jetbrains workspace
 .idea
+
+# ignore the emotion labels
+Emotion
+
+# ignore the ck db images
+cohn-kanade-images/
