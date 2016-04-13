@@ -31,7 +31,7 @@ class Unpacker
             file_dir = File.split(picture_path).first
             FileUtils.mkdir_p(file_dir) unless Dir.exists?(file_dir)
             picture.extract(picture_path) { true }
-            csv.puts "#{picture_path},#{p[:emotion]}"
+            csv.puts "#{File.absolute_path(picture_path)},#{p[:emotion]}"
           else
             puts 'fuckup'
           end

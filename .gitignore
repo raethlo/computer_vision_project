@@ -43,3 +43,6 @@ Emotion
 
 # ignore the ck db images
 cohn-kanade-images/
+
+# csv built from ck database with unpacker.rb
+emotions.csv
