@@ -45,8 +45,6 @@ static void read_csv(const string& filename, vector<Mat>& images, vector<int>& l
 
         img_size = images[0].size();
 
-        for(int i=0; i < images.size(); i++)
-            resize(images[i],images[i],images[0].size(), 0.5, 0.5);
     }
 }
 
@@ -65,7 +63,7 @@ void detectFaces(CascadeClassifier face_cascade, Ptr<face::FaceRecognizer> emoti
         Point point2(faces[i].x + faces[i].width, faces[i].y + faces[i].height);
         Mat faceROI = frame_gray(faces[i]);
         Mat scaledFaceROI;
-        resize(faceROI, scaledFaceROI, img_size, 0.5, 0.5);
+        resize(faceROI, scaledFaceROI, Size(40,40));
 
         int prediction = emotion_recognizer->predict(scaledFaceROI);
         cout << "Could be: " << prediction << endl;
@@ -82,8 +80,11 @@ void cutFacesFromImages(CascadeClassifier face_cascade, vector<Mat> images, vect
         face_cascade.detectMultiScale(images[i], fcs, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(30, 30));
         Mat faceROI = images[i](fcs[0]);
 
+        resize(faceROI, faceROI, Size(40,40));
         faces.push_back(faceROI);
     }
+
+
 }
 
 Ptr<face::FaceRecognizer> trainEmotionClassifier(CascadeClassifier face_cascade)
@@ -99,9 +100,14 @@ Ptr<face::FaceRecognizer> trainEmotionClassifier(CascadeClassifier face_cascade)
     cout << "\"" + fn_csv + "\"" << endl;
     read_csv(fn_csv, images, labels);
     cutFacesFromImages(face_cascade, images, faces);
+//
+//    for(int i = 0; i < 4; i++) {
+//        imshow("img", images[i]);
+//        imshow("face", faces[i]);
+//    }
 
-    Ptr<face::FaceRecognizer> emotion_classifier = createEigenFaceRecognizer(25);
-    emotion_classifier->train(images, labels);
+    Ptr<face::FaceRecognizer> emotion_classifier = createEigenFaceRecognizer();
+    emotion_classifier->train(faces, labels);
     return emotion_classifier;
 }
 
@@ -138,7 +144,9 @@ int main(int argc, char** argv)
         exit(1);
     }
 
-    //capture = cvCaptureFromCAM(0);
+
+
+//    capture = cvCaptureFromCAM(0);
     VideoCapture capture(0);
     if (!capture.isOpened()) {
         printf("couldt load cam\n");
