@@ -36,6 +36,8 @@ static void read_csv(const string& filename, vector<Mat>& images, vector<int>& l
             Mat m = imread(path, 1);
             Mat m2;
             cvtColor(m, m2, CV_RGB2GRAY);
+//            imshow("test", m2);
+//            waitKey(0);
 
             images.push_back(m2);
             labels.push_back(atoi(classlabel.c_str()));
@@ -63,7 +65,7 @@ void detectFaces(CascadeClassifier face_cascade, Ptr<face::FaceRecognizer> emoti
         Point point2(faces[i].x + faces[i].width, faces[i].y + faces[i].height);
         Mat faceROI = frame_gray(faces[i]);
         Mat scaledFaceROI;
-        resize(faceROI, scaledFaceROI, Size(40,40));
+        resize(faceROI, scaledFaceROI, Size(100,100));
 
         int prediction = emotion_recognizer->predict(scaledFaceROI);
         cout << "Could be: " << prediction << endl;
@@ -77,11 +79,20 @@ void cutFacesFromImages(CascadeClassifier face_cascade, vector<Mat> images, vect
 
     for(int i = 0; i< images.size(); i++){
         equalizeHist(images[i], images[i]);
-        face_cascade.detectMultiScale(images[i], fcs, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(30, 30));
+        face_cascade.detectMultiScale(images[i], fcs, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(100, 100));
         Mat faceROI = images[i](fcs[0]);
 
-        resize(faceROI, faceROI, Size(40,40));
-        faces.push_back(faceROI);
+
+        int xToTrim = faceROI.cols * 0.2;
+        int yToTrim = faceROI.rows * 0.15;
+        Mat faceTrimmed = faceROI(Rect(xToTrim, yToTrim, faceROI.cols * 0.6, faceROI.rows * 0.85));
+
+//        imshow("test", faceROI);
+//        imshow("test2", faceTrimmed);
+//        waitKey(0);
+
+        resize(faceROI, faceROI, Size(100,100));
+        faces.push_back(faceTrimmed);
     }
 
 
