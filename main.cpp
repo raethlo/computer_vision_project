@@ -4,18 +4,14 @@
 #include <sstream>
 
 #include <cv.hpp>
-#include "opencv2/core.hpp"
 #include "opencv2/face.hpp"
-#include "opencv2/highgui.hpp"
-#include "opencv2/imgproc.hpp"
-#include "opencv2/objdetect.hpp"
 
 using namespace std;
 using namespace cv;
 using namespace cv::face;
 
 static void read_csv(const string& filename, vector<Mat>& images, vector<int>& labels, char separator);
-void detectFaces(CascadeClassifier face_cascade,Ptr<face::FaceRecognizer> emotion_classifier, Mat frame);
+void detectFaces(CascadeClassifier face_cascade, Mat frame, vector<Rect>& faces);
 Ptr<face::FaceRecognizer> trainEmotionClassifier(CascadeClassifier face_cascade);
 
 String cascade_dir_path = "/home/raethlo/libs/opencv-3.1.0/data/haarcascades/";
@@ -49,27 +45,30 @@ static void read_csv(const string& filename, vector<Mat>& images, vector<int>& l
 }
 
 // model0->save("eigenfaces_at.yml");
-void detectFaces(CascadeClassifier face_cascade, Ptr<face::FaceRecognizer> emotion_recognizer, Mat frame)
+void detectFaces(CascadeClassifier face_cascade, Mat frame_gray,  vector<Rect>& faces)
 {
-    vector<Rect> faces;
-    Mat frame_gray;
-
-    cvtColor(frame, frame_gray, CV_BGR2GRAY);
     equalizeHist(frame_gray, frame_gray);
     face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(30, 30));
+}
 
+void highlightFaces(Mat frame, vector<Rect> faces, vector<Mat>& faceROIs){
     for (int i = 0; i < faces.size(); i++) {
         Point point1(faces[i].x, faces[i].y);
         Point point2(faces[i].x + faces[i].width, faces[i].y + faces[i].height);
-        Mat faceROI = frame_gray(faces[i]);
-        Mat scaledFaceROI;
-        resize(faceROI, scaledFaceROI, Size(40,40));
-
-        int prediction = emotion_recognizer->predict(scaledFaceROI);
-        cout << "Could be: " << prediction << endl;
+        Mat faceROI = frame(faces[i]);
+        faceROIs.push_back(faceROI);
 
         rectangle(frame, point1, point2, cvScalar(255, 255, 0), 2);
     }
+}
+
+int predictFaceExpression(Ptr<face::FaceRecognizer> emotion_recognizer, Mat faceROI){
+    Mat scaledFaceROI;
+    resize(faceROI, scaledFaceROI, Size(40,40));
+
+    int prediction = emotion_recognizer->predict(scaledFaceROI);
+    cout << "Could be: " << prediction << endl;
+    return prediction;
 }
 
 void cutFacesFromImages(CascadeClassifier face_cascade, vector<Mat> images, vector<Mat> &faces){
@@ -83,8 +82,6 @@ void cutFacesFromImages(CascadeClassifier face_cascade, vector<Mat> images, vect
         resize(faceROI, faceROI, Size(40,40));
         faces.push_back(faceROI);
     }
-
-
 }
 
 Ptr<face::FaceRecognizer> trainEmotionClassifier(CascadeClassifier face_cascade)
@@ -107,7 +104,7 @@ Ptr<face::FaceRecognizer> trainEmotionClassifier(CascadeClassifier face_cascade)
 //    }
 
     Ptr<face::FaceRecognizer> emotion_classifier = createEigenFaceRecognizer();
-    emotion_classifier->train(faces, labels);
+    // emotion_classifier->train(faces, labels);
     return emotion_classifier;
 }
 
@@ -144,9 +141,6 @@ int main(int argc, char** argv)
         exit(1);
     }
 
-
-
-//    capture = cvCaptureFromCAM(0);
     VideoCapture capture(0);
     if (!capture.isOpened()) {
         printf("couldt load cam\n");
@@ -154,13 +148,25 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    int frameNumber = 0;
+
     while(true) {
+        Mat frame_gray;
+        vector<Rect> facePositions;
+        vector<Mat> faceROIs;
         capture >> frame;
         if (frame.empty()) { cout << "Empty frame!" << endl; break; }
 
-        detectFaces(face_classifier, emotion_recognizer, frame);
+        cvtColor(frame, frame_gray, CV_BGR2GRAY);
+
+        detectFaces(face_classifier, frame, facePositions);
+        highlightFaces(frame, facePositions, faceROIs);
+
         imshow(window_name, frame);
-//        imshow("face", face);
+
+        if(faceROIs.size() > 0 ){
+            imshow("face", faceROIs[0]);
+        }
 
         if (waitKey(30) == 27)
         {
@@ -168,6 +174,13 @@ int main(int argc, char** argv)
             destroyWindow(window_name);
             break;
         }
+
+
+        if((frameNumber % 10) == 0) {
+            predictFaceExpression(emotion_recognizer, faceROIs[0]);
+            frameNumber = 0;
+        }
+        ++frameNumber;
     }
 
     waitKey(0);
