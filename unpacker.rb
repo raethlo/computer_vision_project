@@ -2,6 +2,10 @@ require 'find'
 require 'pry-byebug'
 require 'zip'
 
+def to_positive_negative(level)
+  return 1 if level == 0 || level == 2 || level== 5
+  return 0;
+end
 class Unpacker
   def unpack
     emotions_dir_path = "Emotion"
@@ -21,7 +25,7 @@ class Unpacker
 
     Zip::File.open(zip_path) do |zip_file|
       binding.pry
-      File.open('emotions.csv', 'w') do |csv|
+      File.open('emotions_2levels.csv', 'w') do |csv|
         pictures.each do |p|
           picture_path = p[:path_in_zip]
 
@@ -31,7 +35,7 @@ class Unpacker
             file_dir = File.split(picture_path).first
             FileUtils.mkdir_p(file_dir) unless Dir.exists?(file_dir)
             picture.extract(picture_path) { true }
-            csv.puts "#{File.absolute_path(picture_path)},#{p[:emotion]}"
+            csv.puts "#{File.absolute_path(picture_path)},#{to_positive_negative(p[:emotion])}"
           else
             puts 'fuckup'
           end
