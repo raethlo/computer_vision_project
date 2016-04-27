@@ -91,14 +91,7 @@ void cutFacesFromImages(CascadeClassifier face_cascade, vector<Mat> images, vect
         int yToTrim = faceROI.rows * 0.15;
         Mat faceTrimmed = faceROI(Rect(xToTrim, yToTrim, faceROI.cols * 0.6, faceROI.rows * 0.85));
 
-//        imshow("test", faceROI);
-//        waitKey(0);
-//        imshow("test2", faceTrimmed);
-//        waitKey(0);
-
         resize(faceTrimmed, faceTrimmed, Size(500,500));
-//        imshow("test2", faceTrimmed);
-//        waitKey(0);
         faces.push_back(faceTrimmed);
     }
 
@@ -145,24 +138,17 @@ int toPositiveNegative(int prediction) {
 Ptr<face::FaceRecognizer> trainEmotionClassifier(CascadeClassifier face_cascade)
 {
     // Get the path to your CSV
-    string fn_csv = "/home/raethlo/Developer/cpp/computer_vision_project/emotions_2levels.csv";
+    string fn_csv = "/home/raethlo/Developer/cpp/computer_vision_project/emotions_happysad";
     // These vectors hold the images and corresponding labels.
     vector<Mat> images;
     vector<int> labels;
     vector<Mat> faces;
+
     // Read in the data. This can fail if no valid
     // input filename is given.
     cout << "\"" + fn_csv + "\"" << endl;
     read_csv(fn_csv, images, labels);
     cutFacesFromImages(face_cascade, images, faces);
-
-//    for(int i = 0; i < faces.size(); i++) {
-////        imshow(i + positiveNegativeName(labels[i]) + "_orig.png", images[i]);
-//        imshow(positiveNegativeName(labels[i]) + "_face" + std::to_string(i) + ".png", faces[i]);
-//    }
-//    cout << faces.size() << endl;
-//    waitKey(0);
-//    destroyAllWindows();
 
     Ptr<face::FaceRecognizer> emotion_classifier = createFisherFaceRecognizer();
     emotion_classifier->train(faces, labels);
@@ -186,8 +172,6 @@ int main(int argc, char** argv)
     String smile_cascade_name = "haarcascade_smile.xml";
     String window_name = "Face detection";
     Mat frame;
-    Mat face;
-
 
     if (!face_classifier.load(cascade_dir_path + face_cascade_name)) {
         printf("couldt load haar cascade data\n");
@@ -210,8 +194,6 @@ int main(int argc, char** argv)
     }
 
 
-
-//    capture = cvCaptureFromCAM(0);
     VideoCapture capture(0);
     if (!capture.isOpened()) {
         printf("couldt load cam\n");
@@ -225,7 +207,6 @@ int main(int argc, char** argv)
 
         detectFaces(face_classifier, emotion_recognizer, frame);
         imshow(window_name, frame);
-//        imshow("face", face);
 
         if (waitKey(30) == 27)
         {
