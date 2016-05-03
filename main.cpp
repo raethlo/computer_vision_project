@@ -72,7 +72,7 @@ void detectFaces(CascadeClassifier face_cascade, Ptr<face::FaceRecognizer> emoti
         resize(faceTrimmed, scaledFaceROI, Size(500,500));
 
         int prediction = emotion_recognizer->predict(scaledFaceROI);
-        cout << "Could be: " << positiveNegativeName(prediction) << endl;
+        cout << "Could be: " << emotionNameFromLabel(prediction) << endl;
 
         rectangle(frame, point1, point2, cvScalar(255, 255, 0), 2);
     }
@@ -138,7 +138,7 @@ int toPositiveNegative(int prediction) {
 Ptr<face::FaceRecognizer> trainEmotionClassifier(CascadeClassifier face_cascade)
 {
     // Get the path to your CSV
-    string fn_csv = "/home/raethlo/Developer/cpp/computer_vision_project/emotions_happysad";
+    string fn_csv = "/home/raethlo/Developer/cpp/computer_vision_project/emotions.csv";
     // These vectors hold the images and corresponding labels.
     vector<Mat> images;
     vector<int> labels;
