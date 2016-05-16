@@ -22,6 +22,8 @@ int toPositiveNegative(int prediction);
 String cascade_dir_path = "/home/raethlo/libs/opencv-3.1.0/data/haarcascades/";
 Size img_size;
 
+// todo lOCAL BINARY PATTERNS
+
 static void read_csv(const string& filename, vector<Mat>& images, vector<int>& labels, char separator = ',') {
     std::ifstream file(filename.c_str(), ifstream::in);
     if (!file) {
@@ -59,7 +61,7 @@ void detectFaces(CascadeClassifier face_cascade, Ptr<face::FaceRecognizer> emoti
 
     cvtColor(frame, frame_gray, CV_BGR2GRAY);
     equalizeHist(frame_gray, frame_gray);
-    face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(100, 100));
+    face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(200, 200));
 
     for (int i = 0; i < faces.size(); i++) {
         Point point1(faces[i].x, faces[i].y);
@@ -72,18 +74,23 @@ void detectFaces(CascadeClassifier face_cascade, Ptr<face::FaceRecognizer> emoti
         resize(faceTrimmed, scaledFaceROI, Size(500,500));
 
         int prediction = emotion_recognizer->predict(scaledFaceROI);
-        cout << "Could be: " << emotionNameFromLabel(prediction) << endl;
+
+        putText(frame, emotionNameFromLabel(prediction), point1, FONT_HERSHEY_TRIPLEX, 2.0, Scalar(0,0,255));
 
         rectangle(frame, point1, point2, cvScalar(255, 255, 0), 2);
     }
 }
+
+//void scaleFaceROI(Mat inputFace, Mat& outputFace){
+//
+//}
 
 void cutFacesFromImages(CascadeClassifier face_cascade, vector<Mat> images, vector<Mat> &faces){
     vector<Rect> fcs;
 
     for(int i = 0; i< images.size(); i++){
         equalizeHist(images[i], images[i]);
-        face_cascade.detectMultiScale(images[i], fcs, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(100, 100));
+        face_cascade.detectMultiScale(images[i], fcs, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(200, 200));
         Mat faceROI = images[i](fcs[0]);
 
 
@@ -139,6 +146,7 @@ Ptr<face::FaceRecognizer> trainEmotionClassifier(CascadeClassifier face_cascade)
 {
     // Get the path to your CSV
     string fn_csv = "/home/raethlo/Developer/cpp/computer_vision_project/emotions.csv";
+//    string fn_csv = "/home/raethlo/Developer/cpp/computer_vision_project/emotions_happysad.csv";
     // These vectors hold the images and corresponding labels.
     vector<Mat> images;
     vector<int> labels;
@@ -150,7 +158,9 @@ Ptr<face::FaceRecognizer> trainEmotionClassifier(CascadeClassifier face_cascade)
     read_csv(fn_csv, images, labels);
     cutFacesFromImages(face_cascade, images, faces);
 
-    Ptr<face::FaceRecognizer> emotion_classifier = createFisherFaceRecognizer();
+//    Ptr<face::FaceRecognizer> emotion_classifier = createFisherFaceRecognizer();
+//    Ptr<face::FaceRecognizer> emotion_classifier = createEigenFaceRecognizer();
+    Ptr<face::FaceRecognizer> emotion_classifier = createLBPHFaceRecognizer();
     emotion_classifier->train(faces, labels);
     return emotion_classifier;
 }
@@ -170,7 +180,7 @@ int main(int argc, char** argv)
 
     String face_cascade_name = "haarcascade_frontalface_default.xml";
     String smile_cascade_name = "haarcascade_smile.xml";
-    String window_name = "Face detection";
+    String window_name = "Emotion detection";
     Mat frame;
 
     if (!face_classifier.load(cascade_dir_path + face_cascade_name)) {
