@@ -14,6 +14,9 @@ using namespace cv::face;
 static void read_csv(const string& filename, vector<Mat>& images, vector<int>& labels, char separator);
 void detectFaces(CascadeClassifier face_cascade,Ptr<face::FaceRecognizer> emotion_classifier, Mat frame);
 Ptr<face::FaceRecognizer> trainEmotionClassifier(CascadeClassifier face_cascade);
+
+void scaleFaceROI(Mat inputFace, Mat& outputFace);
+
 string emotionNameFromLabel(int label);
 
 string positiveNegativeName(int value);
@@ -39,8 +42,6 @@ static void read_csv(const string& filename, vector<Mat>& images, vector<int>& l
             Mat m = imread(path, 1);
             Mat m2;
             cvtColor(m, m2, CV_RGB2GRAY);
-//            imshow("test", m2);
-//            waitKey(0);
 
             images.push_back(m2);
             labels.push_back(atoi(classlabel.c_str()));
@@ -66,11 +67,14 @@ void detectFaces(CascadeClassifier face_cascade, Ptr<face::FaceRecognizer> emoti
     for (int i = 0; i < faces.size(); i++) {
         Point point1(faces[i].x, faces[i].y);
         Point point2(faces[i].x + faces[i].width, faces[i].y + faces[i].height);
+
+
         Mat faceROI = frame_gray(faces[i]);
         Mat scaledFaceROI;
-        int xToTrim = faceROI.cols * 0.2;
-        int yToTrim = faceROI.rows * 0.15;
-        Mat faceTrimmed = faceROI(Rect(xToTrim, yToTrim, faceROI.cols * 0.6, faceROI.rows * 0.85));
+        Mat faceTrimmed;
+
+        scaleFaceROI(faceROI, faceTrimmed);
+
         resize(faceTrimmed, scaledFaceROI, Size(500,500));
 
         int prediction = emotion_recognizer->predict(scaledFaceROI);
@@ -81,9 +85,11 @@ void detectFaces(CascadeClassifier face_cascade, Ptr<face::FaceRecognizer> emoti
     }
 }
 
-//void scaleFaceROI(Mat inputFace, Mat& outputFace){
-//
-//}
+void scaleFaceROI(Mat inputFace, Mat& outputFace){
+    int xToTrim = inputFace.cols * 0.2;
+    int yToTrim = inputFace.rows * 0.15;
+    outputFace = inputFace(Rect(xToTrim, yToTrim, inputFace.cols * 0.6, inputFace.rows * 0.85));
+}
 
 void cutFacesFromImages(CascadeClassifier face_cascade, vector<Mat> images, vector<Mat> &faces){
     vector<Rect> fcs;
@@ -92,18 +98,14 @@ void cutFacesFromImages(CascadeClassifier face_cascade, vector<Mat> images, vect
         equalizeHist(images[i], images[i]);
         face_cascade.detectMultiScale(images[i], fcs, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(200, 200));
         Mat faceROI = images[i](fcs[0]);
+        Mat faceTrimmed;
 
-
-        int xToTrim = faceROI.cols * 0.2;
-        int yToTrim = faceROI.rows * 0.15;
-        Mat faceTrimmed = faceROI(Rect(xToTrim, yToTrim, faceROI.cols * 0.6, faceROI.rows * 0.85));
+        scaleFaceROI(faceROI, faceTrimmed);
 
         resize(faceTrimmed, faceTrimmed, Size(500,500));
         faces.push_back(faceTrimmed);
     }
 
-//    imshow("faces", faces[0]);
-//    waitKey(0);
 }
 
 string emotionNameFromLabel(int label) {
@@ -158,9 +160,9 @@ Ptr<face::FaceRecognizer> trainEmotionClassifier(CascadeClassifier face_cascade)
     read_csv(fn_csv, images, labels);
     cutFacesFromImages(face_cascade, images, faces);
 
-//    Ptr<face::FaceRecognizer> emotion_classifier = createFisherFaceRecognizer();
+    Ptr<face::FaceRecognizer> emotion_classifier = createFisherFaceRecognizer();
 //    Ptr<face::FaceRecognizer> emotion_classifier = createEigenFaceRecognizer();
-    Ptr<face::FaceRecognizer> emotion_classifier = createLBPHFaceRecognizer();
+//    Ptr<face::FaceRecognizer> emotion_classifier = createLBPHFaceRecognizer();
     emotion_classifier->train(faces, labels);
     return emotion_classifier;
 }
@@ -175,11 +177,9 @@ int main(int argc, char** argv)
 {
     std::signal(SIGINT, sigIntHandler);
     CascadeClassifier face_classifier;
-    CascadeClassifier smile_classifier;
     Ptr<FaceRecognizer> emotion_recognizer;
 
     String face_cascade_name = "haarcascade_frontalface_default.xml";
-    String smile_cascade_name = "haarcascade_smile.xml";
     String window_name = "Emotion detection";
     Mat frame;
 
@@ -188,15 +188,10 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    if (!smile_classifier.load(cascade_dir_path + smile_cascade_name)) {
-        printf("couldt load haar cascade data\n");
-        return 1;
-    }
-
     try {
         printf("loading emotion classifier");
         emotion_recognizer = trainEmotionClassifier(face_classifier);
-        emotion_recognizer->save("er_eigenfaces.yml");
+        emotion_recognizer->save("er_eigenface.yml");
     } catch (cv::Exception& e) {
         cerr << "Error opening file. Reason: " << e.msg << endl;
         // nothing more we can do
