@@ -15,7 +15,7 @@ static void read_csv(const string& filename, vector<Mat>& images, vector<int>& l
 void detectFaces(CascadeClassifier face_cascade,Ptr<face::FaceRecognizer> emotion_classifier, Mat frame);
 Ptr<face::FaceRecognizer> trainEmotionClassifier(CascadeClassifier face_cascade);
 
-void scaleFaceROI(Mat inputFace, Mat& outputFace);
+void cutFaceROI(Mat inputFace, Mat& outputFace);
 
 string emotionNameFromLabel(int label);
 
@@ -23,7 +23,6 @@ string positiveNegativeName(int value);
 int toPositiveNegative(int prediction);
 
 String cascade_dir_path = "/home/raethlo/libs/opencv-3.1.0/data/haarcascades/";
-Size img_size;
 
 // todo lOCAL BINARY PATTERNS
 
@@ -49,7 +48,7 @@ static void read_csv(const string& filename, vector<Mat>& images, vector<int>& l
             cout << "Couldn't read file: " << path << endl;
         }
 
-        img_size = images[0].size();
+        images[0].size();
 
     }
 }
@@ -73,7 +72,7 @@ void detectFaces(CascadeClassifier face_cascade, Ptr<face::FaceRecognizer> emoti
         Mat scaledFaceROI;
         Mat faceTrimmed;
 
-        scaleFaceROI(faceROI, faceTrimmed);
+        cutFaceROI(faceROI, faceTrimmed);
 
         resize(faceTrimmed, scaledFaceROI, Size(500,500));
 
@@ -85,7 +84,7 @@ void detectFaces(CascadeClassifier face_cascade, Ptr<face::FaceRecognizer> emoti
     }
 }
 
-void scaleFaceROI(Mat inputFace, Mat& outputFace){
+void cutFaceROI(Mat inputFace, Mat& outputFace){
     int xToTrim = inputFace.cols * 0.2;
     int yToTrim = inputFace.rows * 0.15;
     outputFace = inputFace(Rect(xToTrim, yToTrim, inputFace.cols * 0.6, inputFace.rows * 0.85));
@@ -99,17 +98,20 @@ void cutFacesFromImages(CascadeClassifier face_cascade, vector<Mat> images, vect
         face_cascade.detectMultiScale(images[i], fcs, 1.1, 2, 0 | CV_HAAR_SCALE_IMAGE, Size(200, 200));
         Mat faceROI = images[i](fcs[0]);
         Mat faceTrimmed;
+        Mat resized;
 
-        scaleFaceROI(faceROI, faceTrimmed);
+        cutFaceROI(faceROI, faceTrimmed);
 
-        resize(faceTrimmed, faceTrimmed, Size(500,500));
+        resize(faceTrimmed, resized, Size(500,500));
+
         faces.push_back(faceTrimmed);
     }
 
 }
 
 string emotionNameFromLabel(int label) {
-    // There should be only one entry and the number will range from 0-7 (i.e. 0=neutral, 1=anger, 2=contempt, 3=disgust, 4=fear, 5=happy, 6=sadness, 7=surprise)
+    // There should be only one entry and the number will range from 0-7
+    // (i.e. 0=neutral, 1=anger, 2=contempt, 3=disgust, 4=fear, 5=happy, 6=sadness, 7=surprise)
     switch(label) {
         case 0:
             return "neutral";
